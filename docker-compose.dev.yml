@@ -1,0 +1,20 @@
+services:
+  excel-mcp-server:
+    image: ghcr.io/${REGISTRY_ID}/${PROJECT_NAME}:${VERSION}
+    container_name: ${PROJECT_NAME}
+    platform: linux/amd64
+    ports:
+      - "${PORT:-8660}:${PORT:-8660}"
+    # env_file:
+      # - ./.env
+    restart: unless-stopped
+    volumes:
+      - ${HOME}/.${PROJECT_NAME}:/home/app/.${PROJECT_NAME}
+      # Mount a local directory for Excel files into the container's
+      # configured EXCEL_FILES_PATH. Create an 'excel_files' directory
+      # in your project root if it doesn't exist.
+      - ./excel_files:/app/excel_files
+    # Environment variables are now primarily set in the Dockerfile.
+    # You can override them here if needed, for example:
+    # environment:
+    #   - EXCEL_FILES_PATH=/app/excel_files

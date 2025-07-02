@@ -34,3 +34,4 @@ output/
 *.xls
 *.log 
 excel_files/
+secrets/
