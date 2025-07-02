@@ -34,16 +34,6 @@ from excel_mcp.sheet import (
     unmerge_range,
 )
 
-# Get project root directory path for log file path.
-# When using the stdio transmission method,
-# relative paths may cause log files to fail to create
-# due to the client's running location and permission issues,
-# resulting in the program not being able to run.
-# Thus using os.path.join(ROOT_DIR, "excel-mcp.log") instead.
-
-ROOT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-LOG_FILE = os.path.join(ROOT_DIR, "excel-mcp.log")
-
 # Initialize EXCEL_FILES_PATH variable without assigning a value
 EXCEL_FILES_PATH = None
 
@@ -55,11 +45,6 @@ PORT = int(os.environ.get("PORT", "8660"))
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    handlers=[
-        # Referring to https://github.com/modelcontextprotocol/python-sdk/issues/409#issuecomment-2816831318
-        # The stdio mode server MUST NOT write anything to its stdout that is not a valid MCP message.
-        logging.FileHandler(LOG_FILE)
-    ],
 )
 logger = logging.getLogger("excel-mcp")
 # Initialize FastMCP server
