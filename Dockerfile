@@ -48,9 +48,6 @@ ENV PATH="/app/.venv/bin:$PATH" \
 RUN mkdir -p $EXCEL_FILES_PATH && chown -R app:app $EXCEL_FILES_PATH
 VOLUME $EXCEL_FILES_PATH
 
-# Expose the port the SSE server will run on
-EXPOSE 8660
-
 # Switch to the non-root user before running the application
 USER app
 
