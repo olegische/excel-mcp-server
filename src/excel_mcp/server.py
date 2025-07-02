@@ -101,7 +101,7 @@ def apply_formula(
     sheet_name: str,
     cell: str,
     formula: str,
-) -> str:
+) -> dict[str, Any]:
     """
     Apply Excel formula to cell.
     Excel formula will write to cell with verification.
@@ -111,14 +111,13 @@ def apply_formula(
         # First validate the formula
         validation = validate_formula_impl(full_path, sheet_name, cell, formula)
         if isinstance(validation, dict) and "error" in validation:
-            return f"Error: {validation['error']}"
+            return validation
             
         # If valid, apply the formula
         from excel_mcp.calculations import apply_formula as apply_formula_impl
-        result = apply_formula_impl(full_path, sheet_name, cell, formula)
-        return result["message"]
+        return apply_formula_impl(full_path, sheet_name, cell, formula)
     except (ValidationError, CalculationError) as e:
-        return f"Error: {str(e)}"
+        return {"error": str(e)}
     except Exception as e:
         logger.error(f"Error applying formula: {e}")
         raise
@@ -129,14 +128,13 @@ def validate_formula_syntax(
     sheet_name: str,
     cell: str,
     formula: str,
-) -> str:
+) -> dict[str, Any]:
     """Validate Excel formula syntax without applying it."""
     try:
         full_path = get_excel_path(filepath)
-        result = validate_formula_impl(full_path, sheet_name, cell, formula)
-        return result["message"]
+        return validate_formula_impl(full_path, sheet_name, cell, formula)
     except (ValidationError, CalculationError) as e:
-        return f"Error: {str(e)}"
+        return {"error": str(e)}
     except Exception as e:
         logger.error(f"Error validating formula: {e}")
         raise
@@ -161,7 +159,7 @@ def format_range(
     merge_cells: bool = False,
     protection: Dict[str, Any] = None,
     conditional_format: Dict[str, Any] = None
-) -> str:
+) -> dict[str, Any]:
     """Apply formatting to a range of cells."""
     try:
         full_path = get_excel_path(filepath)
@@ -187,9 +185,9 @@ def format_range(
             protection=protection,
             conditional_format=conditional_format
         )
-        return "Range formatted successfully"
+        return {"message": "Range formatted successfully"}
     except (ValidationError, FormattingError) as e:
-        return f"Error: {str(e)}"
+        return {"error": str(e)}
     except Exception as e:
         logger.error(f"Error formatting range: {e}")
         raise
@@ -201,7 +199,7 @@ def read_data_from_excel(
     start_cell: str = "A1",
     end_cell: str = None,
     preview_only: bool = False
-) -> str:
+) -> dict[str, Any]:
     """
     Read data from Excel worksheet with cell metadata including validation rules.
     
@@ -226,11 +224,9 @@ def read_data_from_excel(
             end_cell
         )
         if not result or not result.get("cells"):
-            return "No data found in specified range"
+            return {"message": "No data found in specified range"}
             
-        # Return as formatted JSON string
-        import json
-        return json.dumps(result, indent=2, default=str)
+        return result
         
     except Exception as e:
         logger.error(f"Error reading data: {e}")
@@ -242,7 +238,7 @@ def write_data_to_excel(
     sheet_name: str,
     data: List[List],
     start_cell: str = "A1",
-) -> str:
+) -> dict[str, Any]:
     """
     Write data to Excel worksheet.
     Excel formula will write to cell without any verification.
@@ -256,38 +252,38 @@ def write_data_to_excel(
     """
     try:
         full_path = get_excel_path(filepath)
-        result = write_data(full_path, sheet_name, data, start_cell)
-        return result["message"]
+        return write_data(full_path, sheet_name, data, start_cell)
     except (ValidationError, DataError) as e:
-        return f"Error: {str(e)}"
+        return {"error": str(e)}
     except Exception as e:
         logger.error(f"Error writing data: {e}")
         raise
 
 @mcp.tool()
-def create_workbook(filepath: str) -> str:
+def create_workbook(filepath: str) -> dict[str, Any]:
     """Create new Excel workbook."""
     try:
         full_path = get_excel_path(filepath)
         from excel_mcp.workbook import create_workbook as create_workbook_impl
-        create_workbook_impl(full_path)
-        return f"Created workbook at {full_path}"
+        result = create_workbook_impl(full_path)
+        if "workbook" in result:
+            del result["workbook"]
+        return result
     except WorkbookError as e:
-        return f"Error: {str(e)}"
+        return {"error": str(e)}
     except Exception as e:
         logger.error(f"Error creating workbook: {e}")
         raise
 
 @mcp.tool()
-def create_worksheet(filepath: str, sheet_name: str) -> str:
+def create_worksheet(filepath: str, sheet_name: str) -> dict[str, Any]:
     """Create new worksheet in workbook."""
     try:
         full_path = get_excel_path(filepath)
         from excel_mcp.workbook import create_sheet as create_worksheet_impl
-        result = create_worksheet_impl(full_path, sheet_name)
-        return result["message"]
+        return create_worksheet_impl(full_path, sheet_name)
     except (ValidationError, WorkbookError) as e:
-        return f"Error: {str(e)}"
+        return {"error": str(e)}
     except Exception as e:
         logger.error(f"Error creating worksheet: {e}")
         raise
@@ -302,11 +298,11 @@ def create_chart(
     title: str = "",
     x_axis: str = "",
     y_axis: str = ""
-) -> str:
+) -> dict[str, Any]:
     """Create chart in worksheet."""
     try:
         full_path = get_excel_path(filepath)
-        result = create_chart_impl(
+        return create_chart_impl(
             filepath=full_path,
             sheet_name=sheet_name,
             data_range=data_range,
@@ -316,9 +312,8 @@ def create_chart(
             x_axis=x_axis,
             y_axis=y_axis
         )
-        return result["message"]
     except (ValidationError, ChartError) as e:
-        return f"Error: {str(e)}"
+        return {"error": str(e)}
     except Exception as e:
         logger.error(f"Error creating chart: {e}")
         raise
@@ -332,11 +327,11 @@ def create_pivot_table(
     values: List[str],
     columns: List[str] = None,
     agg_func: str = "mean"
-) -> str:
+) -> dict[str, Any]:
     """Create pivot table in worksheet."""
     try:
         full_path = get_excel_path(filepath)
-        result = create_pivot_table_impl(
+        return create_pivot_table_impl(
             filepath=full_path,
             sheet_name=sheet_name,
             data_range=data_range,
@@ -345,9 +340,8 @@ def create_pivot_table(
             columns=columns or [],
             agg_func=agg_func
         )
-        return result["message"]
     except (ValidationError, PivotError) as e:
-        return f"Error: {str(e)}"
+        return {"error": str(e)}
     except Exception as e:
         logger.error(f"Error creating pivot table: {e}")
         raise
@@ -359,20 +353,19 @@ def create_table(
     data_range: str,
     table_name: str = None,
     table_style: str = "TableStyleMedium9"
-) -> str:
+) -> dict[str, Any]:
     """Creates a native Excel table from a specified range of data."""
     try:
         full_path = get_excel_path(filepath)
-        result = create_table_impl(
+        return create_table_impl(
             filepath=full_path,
             sheet_name=sheet_name,
             data_range=data_range,
             table_name=table_name,
             table_style=table_style
         )
-        return result["message"]
     except DataError as e:
-        return f"Error: {str(e)}"
+        return {"error": str(e)}
     except Exception as e:
         logger.error(f"Error creating table: {e}")
         raise
@@ -382,14 +375,13 @@ def copy_worksheet(
     filepath: str,
     source_sheet: str,
     target_sheet: str
-) -> str:
+) -> dict[str, Any]:
     """Copy worksheet within workbook."""
     try:
         full_path = get_excel_path(filepath)
-        result = copy_sheet(full_path, source_sheet, target_sheet)
-        return result["message"]
+        return copy_sheet(full_path, source_sheet, target_sheet)
     except (ValidationError, SheetError) as e:
-        return f"Error: {str(e)}"
+        return {"error": str(e)}
     except Exception as e:
         logger.error(f"Error copying worksheet: {e}")
         raise
@@ -398,14 +390,13 @@ def copy_worksheet(
 def delete_worksheet(
     filepath: str,
     sheet_name: str
-) -> str:
+) -> dict[str, Any]:
     """Delete worksheet from workbook."""
     try:
         full_path = get_excel_path(filepath)
-        result = delete_sheet(full_path, sheet_name)
-        return result["message"]
+        return delete_sheet(full_path, sheet_name)
     except (ValidationError, SheetError) as e:
-        return f"Error: {str(e)}"
+        return {"error": str(e)}
     except Exception as e:
         logger.error(f"Error deleting worksheet: {e}")
         raise
@@ -415,14 +406,13 @@ def rename_worksheet(
     filepath: str,
     old_name: str,
     new_name: str
-) -> str:
+) -> dict[str, Any]:
     """Rename worksheet in workbook."""
     try:
         full_path = get_excel_path(filepath)
-        result = rename_sheet(full_path, old_name, new_name)
-        return result["message"]
+        return rename_sheet(full_path, old_name, new_name)
     except (ValidationError, SheetError) as e:
-        return f"Error: {str(e)}"
+        return {"error": str(e)}
     except Exception as e:
         logger.error(f"Error renaming worksheet: {e}")
         raise
@@ -431,40 +421,37 @@ def rename_worksheet(
 def get_workbook_metadata(
     filepath: str,
     include_ranges: bool = False
-) -> str:
+) -> dict[str, Any]:
     """Get metadata about workbook including sheets, ranges, etc."""
     try:
         full_path = get_excel_path(filepath)
-        result = get_workbook_info(full_path, include_ranges=include_ranges)
-        return str(result)
+        return get_workbook_info(full_path, include_ranges=include_ranges)
     except WorkbookError as e:
-        return f"Error: {str(e)}"
+        return {"error": str(e)}
     except Exception as e:
         logger.error(f"Error getting workbook metadata: {e}")
         raise
 
 @mcp.tool()
-def merge_cells(filepath: str, sheet_name: str, start_cell: str, end_cell: str) -> str:
+def merge_cells(filepath: str, sheet_name: str, start_cell: str, end_cell: str) -> dict[str, Any]:
     """Merge a range of cells."""
     try:
         full_path = get_excel_path(filepath)
-        result = merge_range(full_path, sheet_name, start_cell, end_cell)
-        return result["message"]
+        return merge_range(full_path, sheet_name, start_cell, end_cell)
     except (ValidationError, SheetError) as e:
-        return f"Error: {str(e)}"
+        return {"error": str(e)}
     except Exception as e:
         logger.error(f"Error merging cells: {e}")
         raise
 
 @mcp.tool()
-def unmerge_cells(filepath: str, sheet_name: str, start_cell: str, end_cell: str) -> str:
+def unmerge_cells(filepath: str, sheet_name: str, start_cell: str, end_cell: str) -> dict[str, Any]:
     """Unmerge a range of cells."""
     try:
         full_path = get_excel_path(filepath)
-        result = unmerge_range(full_path, sheet_name, start_cell, end_cell)
-        return result["message"]
+        return unmerge_range(full_path, sheet_name, start_cell, end_cell)
     except (ValidationError, SheetError) as e:
-        return f"Error: {str(e)}"
+        return {"error": str(e)}
     except Exception as e:
         logger.error(f"Error unmerging cells: {e}")
         raise
@@ -477,12 +464,12 @@ def copy_range(
     source_end: str,
     target_start: str,
     target_sheet: str = None
-) -> str:
+) -> dict[str, Any]:
     """Copy a range of cells to another location."""
     try:
         full_path = get_excel_path(filepath)
         from excel_mcp.sheet import copy_range_operation
-        result = copy_range_operation(
+        return copy_range_operation(
             full_path,
             sheet_name,
             source_start,
@@ -490,9 +477,8 @@ def copy_range(
             target_start,
             target_sheet
         )
-        return result["message"]
     except (ValidationError, SheetError) as e:
-        return f"Error: {str(e)}"
+        return {"error": str(e)}
     except Exception as e:
         logger.error(f"Error copying range: {e}")
         raise
@@ -504,21 +490,20 @@ def delete_range(
     start_cell: str,
     end_cell: str,
     shift_direction: str = "up"
-) -> str:
+) -> dict[str, Any]:
     """Delete a range of cells and shift remaining cells."""
     try:
         full_path = get_excel_path(filepath)
         from excel_mcp.sheet import delete_range_operation
-        result = delete_range_operation(
+        return delete_range_operation(
             full_path,
             sheet_name,
             start_cell,
             end_cell,
             shift_direction
         )
-        return result["message"]
     except (ValidationError, SheetError) as e:
-        return f"Error: {str(e)}"
+        return {"error": str(e)}
     except Exception as e:
         logger.error(f"Error deleting range: {e}")
         raise
@@ -529,15 +514,14 @@ def validate_excel_range(
     sheet_name: str,
     start_cell: str,
     end_cell: str = None
-) -> str:
+) -> dict[str, Any]:
     """Validate if a range exists and is properly formatted."""
     try:
         full_path = get_excel_path(filepath)
         range_str = start_cell if not end_cell else f"{start_cell}:{end_cell}"
-        result = validate_range_impl(full_path, sheet_name, range_str)
-        return result["message"]
+        return validate_range_impl(full_path, sheet_name, range_str)
     except ValidationError as e:
-        return f"Error: {str(e)}"
+        return {"error": str(e)}
     except Exception as e:
         logger.error(f"Error validating range: {e}")
         raise
@@ -546,7 +530,7 @@ def validate_excel_range(
 def get_data_validation_info(
     filepath: str,
     sheet_name: str
-) -> str:
+) -> dict[str, Any]:
     """
     Get all data validation rules in a worksheet.
     
@@ -567,20 +551,19 @@ def get_data_validation_info(
         
         wb = load_workbook(full_path, read_only=False)
         if sheet_name not in wb.sheetnames:
-            return f"Error: Sheet '{sheet_name}' not found"
+            return {"error": f"Sheet '{sheet_name}' not found"}
             
         ws = wb[sheet_name]
         validations = get_all_validation_ranges(ws)
         wb.close()
         
         if not validations:
-            return "No data validation rules found in this worksheet"
+            return {"message": "No data validation rules found in this worksheet"}
             
-        import json
-        return json.dumps({
+        return {
             "sheet_name": sheet_name,
             "validation_rules": validations
-        }, indent=2, default=str)
+        }
         
     except Exception as e:
         logger.error(f"Error getting validation info: {e}")
