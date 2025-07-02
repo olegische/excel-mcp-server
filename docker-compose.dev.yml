@@ -5,8 +5,9 @@ services:
     platform: linux/amd64
     ports:
       - "${PORT:-8660}:${PORT:-8660}"
-    # env_file:
-      # - ./.env
+    environment:
+      - PORT=8666
+      - HOST=0.0.0.0
     restart: unless-stopped
     volumes:
       - ${HOME}/.${PROJECT_NAME}:/home/app/.${PROJECT_NAME}

@@ -12,6 +12,7 @@ ENV UV_COMPILE_BYTECODE=1
 # Copy dependency definition files
 COPY pyproject.toml ./
 COPY uv.lock ./
+COPY README.md ./
 
 # Copy the application source code
 COPY src ./src/
@@ -48,11 +49,11 @@ RUN mkdir -p $EXCEL_FILES_PATH && chown -R app:app $EXCEL_FILES_PATH
 VOLUME $EXCEL_FILES_PATH
 
 # Expose the port the SSE server will run on
-EXPOSE 8000
+EXPOSE 8660
 
 # Switch to the non-root user before running the application
 USER app
 
 # Set the command to run the server in SSE mode.
 # The original CMD was incorrect and has been fixed.
-CMD ["python", "-m", "excel_mcp", "sse"]
+CMD ["python", "-m", "src.excel_mcp", "sse"]

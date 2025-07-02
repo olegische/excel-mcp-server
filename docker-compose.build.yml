@@ -1,5 +1,5 @@
 services:
-  figma-mcp-multi-user:
+  excel-mcp-server:
     image: ghcr.io/${REGISTRY_ID}/${PROJECT_NAME}:${VERSION}
     build:
       context: .

@@ -47,6 +47,10 @@ LOG_FILE = os.path.join(ROOT_DIR, "excel-mcp.log")
 # Initialize EXCEL_FILES_PATH variable without assigning a value
 EXCEL_FILES_PATH = None
 
+# Initialize HOST and PORT variables for SSE mode
+HOST = os.environ.get("HOST", "localhost")
+PORT = int(os.environ.get("PORT", "8660"))
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -64,11 +68,23 @@ mcp = FastMCP(
     version="0.1.4",
     description="Excel MCP Server for manipulating Excel files",
     dependencies=["openpyxl>=3.1.2"],
+    host=HOST,
+    port=PORT,
     env_vars={
         "EXCEL_FILES_PATH": {
             "description": "Path to Excel files directory",
             "required": False,
             "default": EXCEL_FILES_PATH
+        },
+        "HOST": {
+            "description": "Host for SSE server",
+            "required": False,
+            "default": "localhost"
+        },
+        "PORT": {
+            "description": "Port for SSE server",
+            "required": False,
+            "default": "8660"
         }
     }
 )
@@ -594,7 +610,9 @@ async def run_sse():
     os.makedirs(EXCEL_FILES_PATH, exist_ok=True)
     
     try:
-        logger.info(f"Starting Excel MCP server with SSE transport (files directory: {EXCEL_FILES_PATH})")
+        logger.info(f"Starting Excel MCP server with SSE transport")
+        logger.info(f"Host: {HOST}, Port: {PORT}")
+        logger.info(f"Files directory: {EXCEL_FILES_PATH}")
         await mcp.run_sse_async()
     except KeyboardInterrupt:
         logger.info("Server stopped by user")
